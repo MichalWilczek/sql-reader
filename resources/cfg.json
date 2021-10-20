@@ -1,0 +1,20 @@
+{
+  "sqlite": {
+    "engine": "sqlite:///db_nogit.db",
+    "tables": {
+      "driveline_power_data": {
+        "tags" : ["sensor_id"]
+      }
+    }
+  },
+  "influx": {
+    "client_data": {
+      "database": "test_sql",
+      "host": null,
+      "port": null
+    }
+  },
+  "synchronization": {
+    "sleep_time_seconds": 0.1
+  }
+}
