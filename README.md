@@ -1,7 +1,5 @@
-# template
-##### Template repository with default project structure to be used whenever a new repository is created in Organization.
-
-(Copyright © 2021, Kongsberg. All rights reserved.)
+# sql-to-influx
+##### Package translating an SQL database to Influx database written in Python.
 
 ### Project Description
 
