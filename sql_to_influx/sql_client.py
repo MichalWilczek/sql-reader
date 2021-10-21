@@ -32,73 +32,116 @@ class SQLClient:
         SQLClient
             Instantiated class.
         """
-        return cls(cfg["engine"])
+        return cls(engine=cfg["engine"])
 
     @staticmethod
-    def _create_timestamp_sql_condition(start_timestamp=None, end_timestamp=None):
-        query_message = ""
-        query_options = []
-        if start_timestamp is not None:
-            query_options.append(f"timestamp >= {start_timestamp.value} ")
-        if end_timestamp is not None:
-            query_options.append(f"timestamp <= {end_timestamp.value} ")
-        if len(query_options) > 0:
-            query_message = "WHERE " + "AND ".join(query_options)
-        return query_message
+    def _create_message_for_columns(column_names=None, index_column_name=None):
+        if index_column_name is not None and index_column_name not in column_names:
+            column_names.append(index_column_name)
 
-    def query_data(self, table_name, start_timestamp=None, end_timestamp=None):
+        if column_names is None:
+            return "*"
+        return ",".join(column_names)
+
+    @staticmethod
+    def _check_timestamp_unit(unit):
+        allowed_units = ["D", "h", "m", "s", "ms", "us", "ns"]
+        if unit not in allowed_units:
+            raise ValueError(
+                f"The parameter 'timestamp_unit' should be "
+                f"in one of the allowed units: {allowed_units}."
+                f"The input unit is: {unit}"
+            )
+
+    @staticmethod
+    def _check_column_names_type(column_names):
+        if not isinstance(column_names, list):
+            raise TypeError(
+                "The parameter 'column_names' should be a list. "
+                f"Now, the type is: {type(column_names)}."
+            )
+
+    def query_data(self,
+                   table_name,
+                   column_names=None,
+                   index_column_name=None,
+                   index_timestamp_unit=None,
+                   where_condition=""):
         """Get data from the database.
 
         Parameters
         ----------
         table_name : str
-            Name of the table.
-        start_timestamp : pandas.Timestamp, optional
-            Start timestamp from which the data should queried.
-            Default value is None.
-        end_timestamp : pandas.Timestamp, optional
-            End timestamp from which the data should queried.
-            Default value is None.
+            Name of the table to read.
+        column_names : list(str), optional
+            List of column names to be read from the SQL table.
+            By default, the entire table is read.
+        index_column_name : str, optional
+            The column name to be transformed to an index column.
+            By default, no column is used for this operation.
+            If the specified column name was not specified in column_names,
+            it is added to the query.
+        index_timestamp_unit : str, optional
+            Time unit of the index column if it is chosen. The valid
+            units are ‘D’, ‘h’, ‘m’, ‘s’, ‘ms’, ‘us’, and ‘ns’.
+            For example, ‘s’ means seconds and ‘ms’ means milliseconds.
+        where_condition : str, optional
+            An additional SQL condition that can be put to the query.
 
         Returns
         -------
         pandas.DataFrame
             Queried data from the database.
+
+        Raises
+        ------
+        ValueError
+            If index_timestamp_unit has a wrong unit.
+        TypeError
+            If column_names is not a list.
         """
-        query_message = f"SELECT * FROM {table_name} " \
-                        f"{self._create_timestamp_sql_condition(start_timestamp, end_timestamp)}"
+        if column_names is not None:
+            self._check_column_names_type(column_names)
+        query_message = f"SELECT {self._create_message_for_columns(column_names, index_column_name)} " \
+                        f"FROM {table_name} " \
+                        f"{where_condition}"
+
+        if index_timestamp_unit is None or \
+                (index_column_name is None and index_timestamp_unit is not None):
+            parse_dates = None
+        else:
+            self._check_timestamp_unit(index_timestamp_unit)
+            parse_dates = {f"{index_column_name}": index_timestamp_unit}
+
         try:
             with self._engine.connect() as con:
                 data = pd.read_sql(
                     sql=query_message,
                     con=con,
-                    index_col="timestamp",
-                    parse_dates={"timestamp": "ns"}
+                    index_col=index_column_name,
+                    parse_dates=parse_dates
                 )
                 return data
+
         except Exception as e:
             self._logger.exception(str(e))
             raise
 
-    def delete_data(self, table_name, start_timestamp=None, end_timestamp=None):
+    def empty_table(self, table_name, where_condition=""):
         """Remove the data from the database.
 
         Parameters
         ----------
         table_name : str
-            Name of the table.
-        start_timestamp : pandas.Timestamp, optional
-            Start timestamp from which the data should deleted.
-            Default value is None.
-        end_timestamp : pandas.Timestamp, optional
-            End timestamp from which the data should deleted.
-            Default value is None.
+            Name of the table to read.
+        where_condition : str
+            An additional SQL condition that can be put to the query.
         """
-        query_message = f"DELETE FROM {table_name} " \
-                        f"{self._create_timestamp_sql_condition(start_timestamp, end_timestamp)}"
+        query_message = f"DELETE FROM {table_name} {where_condition}"
         try:
             with self._engine.connect() as con:
                 con.execute(query_message)
+
         except Exception as e:
             self._logger.exception(str(e))
             raise
