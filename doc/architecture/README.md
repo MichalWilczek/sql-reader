@@ -1,1 +1,0 @@
-Placement for UML diagrams, data flow diagrams, and all other pieces of documentation for explaining the code structure..
