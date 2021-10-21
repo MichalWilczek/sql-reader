@@ -4,8 +4,8 @@ import pandas as pd
 from sqlalchemy import create_engine
 
 
-class SQLClient:
-    """Client object for the SQL database.
+class SQLReader:
+    """Client object that reads data from an SQL database.
 
     Parameters
     ----------
@@ -29,7 +29,7 @@ class SQLClient:
 
         Returns
         -------
-        SQLClient
+        SQLReader
             Instantiated class.
         """
         return cls(engine=cfg["engine"])
