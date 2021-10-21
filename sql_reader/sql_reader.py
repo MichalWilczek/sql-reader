@@ -18,22 +18,6 @@ class SQLReader:
         self._logger = logging.getLogger(__name__)
         self._engine = create_engine(engine, echo=False)
 
-    @classmethod
-    def init_from_dict(cls, cfg):
-        """Instantiate the class from the configuration dictionary.
-
-        Parameters
-        ----------
-        cfg : dict
-            Configuration dictionary.
-
-        Returns
-        -------
-        SQLReader
-            Instantiated class.
-        """
-        return cls(engine=cfg["engine"])
-
     @staticmethod
     def _create_message_for_columns(column_names=None, index_column_name=None):
         if index_column_name is not None and index_column_name not in column_names:
